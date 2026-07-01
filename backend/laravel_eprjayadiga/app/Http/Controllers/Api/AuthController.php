@@ -41,7 +41,7 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::query()->where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
@@ -63,7 +63,9 @@ class AuthController extends Controller
 
    public function logout(Request $request)
    {
-        $request->user()->currentAccessToken()->delete();
+        /** @var \Laravel\Sanctum\PersonalAccessToken $token */
+        $token = $request->user()->currentAccessToken();
+        $token->delete();
 
         return response()->json([
             'success' => true,

@@ -11,9 +11,15 @@ class ClientController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $clients = Client::query()->latest()->get();
+        $query = Client::query()->latest();
+
+        if ($request->query('include_projects') == 'true') {
+            $query->with('projects');
+        }
+
+        $clients = $query->get();
 
         return response()->json([
             'success' => true,
