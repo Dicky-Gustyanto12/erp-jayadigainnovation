@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Client;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -12,7 +13,13 @@ class ClientController extends Controller
      */
     public function index()
     {
-        //
+        $clients = Client::query()->latest()->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data Client berhasil diambil',
+            'data' => $clients
+        ], 200);
     }
 
     /**
@@ -20,7 +27,25 @@ class ClientController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'company' => 'required|string',
+            'address' => 'required|string',
+            'contact' => 'required|string',
+            'email' => 'required|string|email|unique:clients,email' 
+        ]);
+
+        $client = Client::create([
+            'company' => $request->company,
+            'address' => $request->address,
+            'contact' => $request->contact,
+            'email' => $request->email
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data client baru berhasil ditambahkan',
+            'data' => $client
+        ], 201);
     }
 
     /**
@@ -28,7 +53,13 @@ class ClientController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $client = Client::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data client berhasil diambil',
+            'data' => $client
+        ], 200);
     }
 
     /**
@@ -36,7 +67,27 @@ class ClientController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $client = Client::findOrFail($id);
+
+        $request->validate([
+            'company' => 'required|string',
+            'address' => 'required|string',
+            'contact' => 'required|string',
+            'email' => 'required|string|email|unique:clients,email,' . $client->id
+        ]);
+
+        $client->update([
+            'company' => $request->company,
+            'address' => $request->address,
+            'contact' => $request->contact,
+            'email' => $request->email
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data Client berhasil diperbarui',
+            'data' => $client
+        ], 200);
     }
 
     /**
@@ -44,6 +95,13 @@ class ClientController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        Client::destroy($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data client berhasil dihapus',
+            'data' => null
+        ], 200);
     }
 }
+    

@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 
-use function Pest\Laravel\delete;
-
 class EmployeeController extends Controller
 {
     /**
@@ -18,7 +16,7 @@ class EmployeeController extends Controller
         $employees = Employee::query()->latest()->get();
 
         return response()->json([
-            'succes' => true,
+            'success' => true,
             'message' => 'Data karyawan berhasil diambil',
             'data' => $employees
         ], 200);
@@ -33,7 +31,7 @@ class EmployeeController extends Controller
             'name' => 'required|string',
             'address' => 'required|string',
             'contact' => 'required|string',
-            'email' => 'nullable|string',
+            'email' => 'nullable|string|email|unique:employees,email',
             'department' => 'required|string',
         ]);
 
@@ -45,7 +43,7 @@ class EmployeeController extends Controller
             'department' => $request->department,
         ]);
 
-        response()->json([
+        return response()->json([
             'success' => true,
             'message' => 'Data karyawan baru berhasil ditambahkan',
             'data' => $employee
@@ -77,7 +75,7 @@ class EmployeeController extends Controller
             'name' => 'required|string',
             'address' => 'required|string',
             'contact' => 'required|string',
-            'email' => 'nullable|string',
+            'email' => 'nullable|string|email|unique:employees,email,' . $employee->id,
             'department' => 'required|string',
         ]);
 
@@ -101,7 +99,7 @@ class EmployeeController extends Controller
      */
     public function destroy(string $id)
     {
-        $employee = Employee::destroy($id);
+        Employee::destroy($id);
         
         return response()->json([
             'success' => true,

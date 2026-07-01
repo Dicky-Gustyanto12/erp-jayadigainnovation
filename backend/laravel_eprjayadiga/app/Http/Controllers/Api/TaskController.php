@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Task;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -12,7 +13,13 @@ class TaskController extends Controller
      */
     public function index()
     {
-        //
+        $tasks = Task::query()->latest()->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data Task berhasil diambil',
+            'data' => $tasks
+        ], 200);
     }
 
     /**
@@ -20,7 +27,27 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'task_name' => 'required|string',
+            'percent' => 'required|integer|min:0|max:100',
+            'start_at' => 'required|date',
+            'status' => 'required|string',
+            'project_id' => 'required|integer|exists:projects,id'
+        ]);
+
+        $task = Task::create([
+            'task_name' => $request->task_name,
+            'percent' => $request->percent,
+            'start_at' => $request->start_at,
+            'status' => $request->status,
+            'project_id' => $request->project_id
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data Task baru berhasil ditambahkan',
+            'data' => $task
+        ], 201);
     }
 
     /**
@@ -28,7 +55,13 @@ class TaskController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $task = Task::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data Task berhasil diambil',
+            'data' => $task
+        ], 200);
     }
 
     /**
@@ -36,7 +69,29 @@ class TaskController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $task = Task::findOrFail($id);
+
+        $request->validate([
+            'task_name' => 'required|string',
+            'percent' => 'required|integer|min:0|max:100',
+            'start_at' => 'required|date',
+            'status' => 'required|string',
+            'project_id' => 'required|integer|exists:projects,id'
+        ]);
+
+        $task->update([
+            'task_name' => $request->task_name,
+            'percent' => $request->percent,
+            'start_at' => $request->start_at,
+            'status' => $request->status,
+            'project_id' => $request->project_id
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data Task berhasil diperbarui',
+            'data' => $task
+        ], 200);
     }
 
     /**
@@ -44,6 +99,12 @@ class TaskController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        Task::destroy($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data Task berhasil dihapus',
+            'data' => null
+        ], 200);
     }
 }
