@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Income; 
+use App\Models\Project; // <--- DITAMBAHKAN: Import Model Project
 use Illuminate\Http\Request;
 
 class InvoiceController extends Controller
@@ -46,7 +47,7 @@ class InvoiceController extends Controller
             'project_id'   => $request->project_id,
             'invoice_date' => $request->invoice_date,
             'due_date'     => $request->due_date,
-            'total'        => $request->total, // <--- MASALAH NULL TERSOLUSIKAN DI SINI
+            'total'        => $request->total,
             'status'       => $request->status
         ]);
 
@@ -62,8 +63,9 @@ class InvoiceController extends Controller
             ]);
         }
 
-        // 4. Otomatisasi Arus Kas (Jika Lunas)
+        // 4. Otomatisasi Arus Kas & Status Proyek (Jika Lunas)
         if ($invoice->status === 'Lunas') {
+            // A. Catat Pemasukan
             Income::create([
                 'invoice_id'      => $invoice->id,
                 'income_date'     => date('Y-m-d'),
@@ -71,6 +73,17 @@ class InvoiceController extends Controller
                 'income_amount'   => $invoice->total,
                 'income_category' => 'Proyek' 
             ]);
+
+            // B. PERBAIKAN: Sinkronisasi Status Proyek menjadi 'Selesai'
+            if ($invoice->project_id) {
+                $project = Project::find($invoice->project_id);
+                if ($project && $project->status !== 'Selesai') {
+                    $project->update([
+                        'status' => 'Selesai',
+                        'end_at' => date('Y-m-d') // Otomatis mengisi tanggal selesai aktual
+                    ]);
+                }
+            }
         }
 
         // Ambil ulang data lengkap untuk dikembalikan ke Frontend
@@ -147,8 +160,9 @@ class InvoiceController extends Controller
             ]);
         }
 
-        // 3. Otomatisasi Sinkronisasi Pemasukan
+        // 3. Otomatisasi Sinkronisasi Pemasukan & Status Proyek
         if ($invoice->status === 'Lunas') {
+            // A. Update atau Buat Pemasukan Baru
             Income::updateOrCreate(
                 ['invoice_id' => $invoice->id],
                 [
@@ -158,8 +172,24 @@ class InvoiceController extends Controller
                     'income_category' => 'Proyek'
                 ]
             );
+
+            // B. PERBAIKAN: Sinkronisasi Status Proyek menjadi 'Selesai'
+            if ($invoice->project_id) {
+                $project = Project::find($invoice->project_id);
+                if ($project && $project->status !== 'Selesai') {
+                    $project->update([
+                        'status' => 'Selesai',
+                        'end_at' => date('Y-m-d') // Otomatis mengisi tanggal selesai aktual
+                    ]);
+                }
+            }
+
         } else {
+            // Jika invoice diubah dari Lunas kembali ke Pending/Batal, hapus arus kas
             Income::where('invoice_id', $invoice->id)->delete();
+            
+            // Opsional: Kita sengaja TIDAK mengubah status Proyek kembali ke Pending secara otomatis 
+            // di sini untuk menghindari kekacauan data jika proyek memang sudah fisik selesai.
         }
 
         $updatedInvoice = Invoice::with(['client', 'project', 'items'])->find($id);

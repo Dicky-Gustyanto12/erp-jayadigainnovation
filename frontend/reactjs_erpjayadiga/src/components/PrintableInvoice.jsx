@@ -124,16 +124,24 @@ const PrintableInvoice = ({ data, onClose }) => {
                     {data.invoice_code || `INV-${data.id}`}
                   </td>
                 </tr>
+                {/* PERBAIKAN: Tanggal terbit dinamis dari data.invoice_date */}
+                <tr>
+                  <td className="py-0.5 font-medium align-top">Tanggal</td>
+                  <td className="w-3 py-0.5 align-top">:</td>
+                  <td className="py-0.5 align-top">
+                    {formatDate(data.invoice_date)}
+                  </td>
+                </tr>
                 <tr>
                   <td className="py-0.5 font-medium align-top">Perihal</td>
                   <td className="w-3 py-0.5 align-top">:</td>
                   <td className="py-0.5 align-top">Invoice</td>
                 </tr>
-                <tr>
+                {/* <tr>
                   <td className="py-0.5 font-medium align-top">Lampiran</td>
                   <td className="w-3 py-0.5 align-top">:</td>
                   <td className="py-0.5 align-top">1 lembar</td>
-                </tr>
+                </tr> */}
                 <tr>
                   <td className="py-0.5 font-medium align-top">Revisi</td>
                   <td className="w-3 py-0.5 align-top">:</td>
