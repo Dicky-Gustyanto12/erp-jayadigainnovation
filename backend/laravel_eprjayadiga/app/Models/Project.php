@@ -16,7 +16,8 @@ class Project extends Model
         'deadline',
         'start_at',
         'end_at',
-        'client_id'
+        'client_id',
+        'status'
     ];
 
     protected static function booted(): void

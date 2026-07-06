@@ -1,70 +1,148 @@
-import React from 'react';
-import { Calendar, MapPin, BarChart3, ChevronRight } from 'lucide-react';
+import React from "react";
+import {
+  Briefcase,
+  Building2,
+  MapPin,
+  Calendar,
+  Clock,
+  Flag,
+} from "lucide-react";
 
-const Project = ({ projects = [] }) => {
+const Project = ({ data, onClose }) => {
+  if (!data) return null;
+
+  // Alat bantu format tanggal
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {projects.length > 0 ? (
-        projects.map((item) => (
-          <div key={item.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all group">
-            {/* Thumbnail / Category Ribbon */}
-            <div className="h-3 bg-[#1A3263] w-full"></div>
-            
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <span className="px-3 py-1 bg-blue-50 text-[#1A3263] text-[10px] font-bold uppercase rounded-lg">
-                  {item.kategori}
-                </span>
-                <span className={`text-[10px] font-bold uppercase ${
-                  item.priority === 'High' ? 'text-red-500' : 'text-gray-400'
-                }`}>
-                  {item.priority} Priority
-                </span>
-              </div>
+    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 max-w-2xl mx-auto w-full">
+      {/* HEADER KARTU (WARNA BIRU) */}
+      <div className="bg-[#1A3263] p-8 text-white text-center relative flex flex-col items-center">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-blue-200 hover:text-white transition font-bold cursor-pointer"
+        >
+          ✕
+        </button>
 
-              <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#1A3263] transition-colors">
-                {item.nama}
-              </h3>
-
-              <div className="space-y-2 mb-6">
-                <div className="flex items-center gap-2 text-gray-500 text-sm">
-                  <MapPin size={14} />
-                  <span>{item.lokasi}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-500 text-sm">
-                  <Calendar size={14} />
-                  <span>Deadline: {item.deadline}</span>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-1 text-xs font-bold text-gray-400">
-                    <BarChart3 size={14} />
-                    <span>PROGRESS</span>
-                  </div>
-                  <span className="text-sm font-bold text-[#1A3263]">{item.progress}%</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div 
-                    className="bg-[#1A3263] h-2 rounded-full transition-all duration-1000" 
-                    style={{ width: `${item.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <button className="w-full py-3 bg-gray-50 border-t border-gray-100 text-sm font-bold text-[#1A3263] flex items-center justify-center gap-2 hover:bg-[#1A3263] hover:text-white transition-all cursor-pointer">
-              Detail Proyek <ChevronRight size={16} />
-            </button>
-          </div>
-        ))
-      ) : (
-        <div className="col-span-full py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100 text-gray-400">
-          Belum ada data proyek yang tersedia.
+        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-4 shadow-lg border-4 border-[#25468a]">
+          <Briefcase size={48} className="text-[#1A3263]" />
         </div>
-      )}
+
+        <h2 className="text-2xl font-bold px-4 leading-tight mb-2">
+          {data.project_name}
+        </h2>
+
+        <div className="flex items-center justify-center gap-3 mt-1">
+          <p className="text-blue-200 text-sm font-medium">
+            {data.project_code || `PJ-${data.id}`}
+          </p>
+          <span className="text-blue-200 text-sm">•</span>
+          {/* Badge Status di Header */}
+          <span className="text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-full bg-white text-[#1A3263] shadow-sm">
+            {data.status || "Perencanaan"}
+          </span>
+        </div>
+      </div>
+
+      {/* DETAIL INFO PROYEK */}
+      <div className="p-8">
+        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6 border-b pb-2">
+          Informasi Pekerjaan
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex items-start gap-3 md:col-span-2 border-b border-gray-100 pb-4">
+            <div className="bg-blue-50 p-2 rounded-lg text-[#1A3263] shrink-0">
+              <Building2 size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-semibold mb-0.5">
+                Client / Mitra Bisnis
+              </p>
+              <p className="text-gray-900 font-bold text-lg">
+                {data.client?.company || (
+                  <span className="text-red-400 italic font-normal">
+                    Tidak ada data Client
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="bg-blue-50 p-2 rounded-lg text-[#1A3263] shrink-0">
+              <MapPin size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-semibold mb-0.5">
+                Lokasi Proyek
+              </p>
+              <p className="text-gray-900 font-medium">{data.place || "-"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="bg-orange-50 p-2 rounded-lg text-orange-600 shrink-0">
+              <Flag size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-semibold mb-0.5">
+                Tenggat Waktu (Deadline)
+              </p>
+              <p className="text-gray-900 font-bold">
+                {formatDate(data.deadline)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="bg-green-50 p-2 rounded-lg text-green-600 shrink-0">
+              <Calendar size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-semibold mb-0.5">
+                Tanggal Mulai (Start)
+              </p>
+              <p className="text-gray-900 font-medium">
+                {formatDate(data.start_at)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="bg-purple-50 p-2 rounded-lg text-purple-600 shrink-0">
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-semibold mb-0.5">
+                Tanggal Selesai (End)
+              </p>
+              <p className="text-gray-900 font-medium">
+                {formatDate(data.end_at)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
+        <button
+          onClick={onClose}
+          className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 font-bold hover:bg-gray-100 transition cursor-pointer"
+        >
+          Tutup Detail
+        </button>
+      </div>
     </div>
   );
 };

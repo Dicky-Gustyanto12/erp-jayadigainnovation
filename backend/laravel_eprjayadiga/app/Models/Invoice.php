@@ -15,7 +15,8 @@ class Invoice extends Model
         'status',
         'client_id',
         'project_id',
-        'invoice_date'
+        'invoice_date',
+        'due_date'
     ];
 
     protected static function booted(): void
@@ -41,5 +42,9 @@ class Invoice extends Model
 
     public function client() {
         return $this->belongsTo(Client::class);     
+    }
+
+    public function items() {
+        return $this->hasMany(InvoiceItem::class);
     }
 }
