@@ -1,100 +1,94 @@
 import React, { useState } from "react";
-import { Download, X } from "lucide-react";
-import html2pdf from "html2pdf.js";
+import { Printer, X } from "lucide-react";
 
 const PrintableInvoice = ({ data, onClose }) => {
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   if (!data) return null;
 
-  // 1. FORMATTER
   const formatAngka = (number) => {
-    return new Intl.NumberFormat("id-ID", {
-      minimumFractionDigits: 0,
-    }).format(number || 0);
+    return new Intl.NumberFormat("id-ID", { minimumFractionDigits: 0 }).format(
+      number || 0,
+    );
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("id-ID", {
-      day: "2-digit",
+      day: "numeric",
       month: "long",
       year: "numeric",
     }).format(date);
   };
 
-  // 2. LOGIKA ITEM
-  const items = data.items || [];
-  const barangItems = items.filter(
-    (item) => item.item_type === "barang" || !item.item_type,
-  );
-  const dpItems = items.filter((item) => item.item_type === "dp");
-  const pelunasanItems = items.filter((item) => item.item_type === "pelunasan");
-
-  const subtotalBarang = barangItems.reduce(
-    (sum, item) => sum + Number(item.subtotal),
-    0,
-  );
-  const subtotalDp = dpItems.reduce(
-    (sum, item) => sum + Number(item.subtotal),
-    0,
-  );
-  const subtotalPelunasan = pelunasanItems.reduce(
-    (sum, item) => sum + Number(item.subtotal),
-    0,
-  );
-
-  const namaBarangText = barangItems.map((item) => item.description).join(", ");
-
-  // 3. FUNGSI DOWNLOAD
-  const handleDownloadPDF = async () => {
-    try {
-      setIsDownloading(true);
-      const element = document.getElementById("invoice-content");
-
-      const opt = {
-        margin: 0,
-        filename: `${data.invoice_code || "Invoice"}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          scrollY: 0,
-          letterRendering: true,
-        },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      };
-
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsDownloading(false);
-    }
+  const handlePrint = () => {
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 100);
   };
 
+  let itemCounter = 1;
+
   return (
-    <div className="flex flex-row items-start justify-center gap-6 max-w-full p-4 min-h-screen">
+    <div className="flex flex-row items-start justify-center gap-6 max-w-full p-4 min-h-screen print:p-0 print:m-0 print:bg-white">
       <style>
         {`
           @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+          
           .font-roboto { font-family: 'Roboto', sans-serif; }
           .no-split { page-break-inside: avoid; }
+
+          /* ========================================== */
+          /* PENGATURAN KHUSUS CETAK NATIVE BROWSER     */
+          /* ========================================== */
+          @media print {
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+
+            @page {
+              size: A4 portrait;
+              margin: 0mm; 
+            }
+
+            body * {
+              visibility: hidden;
+            }
+
+            #invoice-content, #invoice-content * {
+              visibility: visible;
+            }
+
+            #invoice-content {
+              position: absolute;
+              left: 0;
+              top: 0;
+              margin: 0 !important;
+              padding: 15mm 20mm !important;
+              box-shadow: none !important;
+              width: 210mm !important;
+              height: 297mm !important;
+            }
+
+            .fixed.inset-0 {
+              background: none !important;
+              backdrop-filter: none !important;
+            }
+          }
         `}
       </style>
 
-      {/* BALANCER KIRI (Menjaga Kertas A4 Tepat di Tengah Layar) */}
       <div className="w-48 shrink-0 hidden lg:block print:hidden"></div>
 
-      {/* AREA KERTAS A4 */}
       <div
         id="invoice-content"
-        className="w-[210mm] bg-[#FFFFFF] text-[#000000] font-roboto text-[11pt] shadow-lg overflow-hidden box-border px-[20mm] py-[20mm] shrink-0"
+        className="w-[210mm] bg-[#FFFFFF] text-[#000000] font-roboto text-[11pt] shadow-lg overflow-hidden box-border px-[20mm] py-[20mm] shrink-0 print:shadow-none"
         style={{ minHeight: "296mm" }}
       >
-        {/* HEADER */}
         <div className="text-center pb-2">
           <h1 className="text-2xl font-bold text-[#1A3263] tracking-wide uppercase">
             JAYA DIGA INNOVATION
@@ -108,11 +102,9 @@ const PrintableInvoice = ({ data, onClose }) => {
           </p>
         </div>
 
-        {/* DOUBLE LINE HEADER */}
         <div className="border-b border-[#1A3263] w-full"></div>
         <div className="border-b border-[#1A3263] w-full mt-[1.5px] mb-6"></div>
 
-        {/* META DATA */}
         <div className="flex justify-between mb-8 text-[10pt]">
           <div className="w-1/2 pr-4">
             <table className="w-full">
@@ -124,7 +116,6 @@ const PrintableInvoice = ({ data, onClose }) => {
                     {data.invoice_code || `INV-${data.id}`}
                   </td>
                 </tr>
-                {/* PERBAIKAN: Tanggal terbit dinamis dari data.invoice_date */}
                 <tr>
                   <td className="py-0.5 font-medium align-top">Tanggal</td>
                   <td className="w-3 py-0.5 align-top">:</td>
@@ -137,11 +128,11 @@ const PrintableInvoice = ({ data, onClose }) => {
                   <td className="w-3 py-0.5 align-top">:</td>
                   <td className="py-0.5 align-top">Invoice</td>
                 </tr>
-                {/* <tr>
+                <tr>
                   <td className="py-0.5 font-medium align-top">Lampiran</td>
                   <td className="w-3 py-0.5 align-top">:</td>
                   <td className="py-0.5 align-top">1 lembar</td>
-                </tr> */}
+                </tr>
                 <tr>
                   <td className="py-0.5 font-medium align-top">Revisi</td>
                   <td className="w-3 py-0.5 align-top">:</td>
@@ -179,39 +170,36 @@ const PrintableInvoice = ({ data, onClose }) => {
           </div>
         </div>
 
-        {/* PEMBUKA */}
         <div className="mb-4 text-[10pt]">
           <p className=" mb-1 leading-relaxed">Dengan Hormat,</p>
           <p className="leading-relaxed">
-            Berikut saya lampirkan Invoice untuk{" "}
-            {namaBarangText || "pekerjaan tersebut"} dengan rincian sebagai
-            berikut:
+            Berikut saya lampirkan Invoice untuk pekerjaan tersebut dengan
+            rincian sebagai berikut:
           </p>
         </div>
 
-        {/* TABEL RINCIAN (Anti-Crash Version: No Flexbox, No H-Full) */}
         <table className="w-full border-collapse border border-[#000000] mb-8 text-[10pt]">
           <thead className="bg-[#9ccaff] font-bold">
             <tr>
-              <th className="border border-[#000000] py-2.5 w-10 align-middle">
+              <th className="border border-[#000000] py-2 w-10 align-middle">
                 No
               </th>
-              <th className="border border-[#000000] py-2.5 align-middle">
+              <th className="border border-[#000000] py-2 align-middle">
                 Description
               </th>
-              <th className="border border-[#000000] py-2.5 w-24 align-middle">
+              <th className="border border-[#000000] py-2 w-24 align-middle">
                 Qty
               </th>
-              <th className="border border-[#000000] py-2.5 w-32 align-middle">
+              <th className="border border-[#000000] py-2 w-32 align-middle">
                 Harga Satuan
               </th>
-              <th className="border border-[#000000] py-2.5 w-36 align-middle">
+              <th className="border border-[#000000] py-2 w-36 align-middle">
                 Jumlah
               </th>
             </tr>
           </thead>
           <tbody>
-            {items.length === 0 && (
+            {!data.items || data.items.length === 0 ? (
               <tr>
                 <td
                   colSpan="5"
@@ -220,144 +208,131 @@ const PrintableInvoice = ({ data, onClose }) => {
                   (Tidak ada rincian item)
                 </td>
               </tr>
+            ) : (
+              data.items.map((item, index) => {
+                // 1. DETEKSI BARIS JARAK (KOSONG)
+                const isSpacing =
+                  item.item_type?.toLowerCase() === "kosong" ||
+                  item.description === "-";
+
+                // 2. DETEKSI KATEGORI (Pastikan bukan isSpacing)
+                const isCategory =
+                  !isSpacing &&
+                  (item.item_type?.toLowerCase() === "kategori" ||
+                    (Number(item.qty) === 0 &&
+                      Number(item.unit_price) === 0 &&
+                      Number(item.subtotal) === 0));
+
+                // LOGIKA 1: JIKA BARIS JARAK
+                if (isSpacing) {
+                  return (
+                    <tr key={index} className="border-y border-[#000000]">
+                      {/* Diberikan div dengan h-5 agar ada jarak spasi yang nyata, tapi isinya kosong melompong */}
+                      <td className="border-x border-[#000000] bg-[#FFFFFF]">
+                        <div className="h-5 w-full"></div>
+                      </td>
+                      <td className="border-x border-[#000000] bg-[#FFFFFF]"></td>
+                      <td className="border-x border-[#000000] bg-[#FFFFFF]"></td>
+                      <td className="border-x border-[#000000] bg-[#FFFFFF]"></td>
+                      <td className="border-x border-[#000000] bg-[#FFFFFF]"></td>
+                    </tr>
+                  );
+                }
+
+                // LOGIKA 2: JIKA KATEGORI
+                if (isCategory) {
+                  itemCounter = 1; // Reset Nomor
+                  const bgDescYellow = item.is_highlighted
+                    ? "bg-[#FDE047]"
+                    : "bg-[#FFFFFF]";
+
+                  return (
+                    <tr key={index} className="border-y border-[#000000]">
+                      <td className="border-x border-[#000000] text-center font-bold py-0.5 align-middle bg-[#FFFFFF]">
+                        #
+                      </td>
+                      <td
+                        className={`border-x border-[#000000] text-left font-bold px-2 py-0.5 align-middle ${bgDescYellow}`}
+                      >
+                        {item.description}
+                      </td>
+                      <td className="border-x border-[#000000] px-2 align-middle py-0.5 bg-[#FFFFFF]"></td>
+                      <td className="border-x border-[#000000] text-right pr-2 align-middle py-0.5 bg-[#FFFFFF]"></td>
+                      <td className="border-x border-[#000000] text-right pr-2 align-middle py-0.5 bg-[#FFFFFF]"></td>
+                    </tr>
+                  );
+                }
+
+                // LOGIKA 3: JIKA PEKERJAAN NORMAL
+                const currentNum = itemCounter++;
+
+                return (
+                  <tr key={index} className="border-y border-[#000000]">
+                    <td className="border-x border-[#000000] text-center align-middle py-0.5 bg-[#FFFFFF]">
+                      {currentNum}
+                    </td>
+                    <td className="border-x border-[#000000] text-left px-2 align-middle py-0.5 bg-[#FFFFFF]">
+                      {item.description}
+                    </td>
+                    <td className="border-x border-[#000000] px-2 align-middle py-0.5 bg-[#FFFFFF]">
+                      <div className="flex justify-between w-full">
+                        <span>{item.qty || ""}</span>
+                        <span>{item.unit || ""}</span>
+                      </div>
+                    </td>
+                    <td className="border-x border-[#000000] text-right pr-2 align-middle py-0.5 bg-[#FFFFFF]">
+                      {item.unit_price ? formatAngka(item.unit_price) : ""}
+                    </td>
+                    <td className="border-x border-[#000000] text-right pr-2 align-middle py-0.5 bg-[#FFFFFF]">
+                      {item.subtotal ? formatAngka(item.subtotal) : ""}
+                    </td>
+                  </tr>
+                );
+              })
             )}
 
-            {/* 1. LOOPING BARANG / PEKERJAAN */}
-            {barangItems.map((item, index) => (
-              <tr key={index}>
-                <td className="border border-[#000000] text-center align-middle py-2.5">
-                  {index + 1}
-                </td>
-                <td className="border border-[#000000] text-left px-2 align-middle py-2.5">
-                  {item.description}
-                </td>
-                <td className="border border-[#000000] px-2 align-middle py-2.5">
-                  {/* Diganti menjadi float agar library PDF membacanya dengan sempurna */}
-                  <span className="float-left">{item.qty}</span>
-                  <span className="float-right">{item.unit}</span>
-                  <div className="clear-both"></div>
-                </td>
-                <td className="border border-[#000000] text-right pr-2 align-middle py-2.5">
-                  {formatAngka(item.unit_price)}
-                </td>
-                <td className="border border-[#000000] text-right pr-2 align-middle py-2.5">
-                  {formatAngka(item.subtotal)}
-                </td>
-              </tr>
-            ))}
-
-            {/* Subtotal Barang */}
-            {(dpItems.length > 0 || pelunasanItems.length > 0) && (
+            {data.items && data.items.length > 0 && (
               <tr>
                 <td
-                  colSpan="4"
-                  className="border border-[#000000] text-right pr-2 py-2.5 font-bold italic align-middle"
+                  colSpan="3"
+                  className="border-y border-l border-[#000000] py-2 text-center font-bold align-middle bg-[#FFFFFF]"
+                  style={{ borderRight: "none" }}
                 >
-                  Subtotal
+                  Sub Total
                 </td>
-                <td className="border border-[#000000] text-right pr-2 py-2.5 font-bold align-middle">
-                  {formatAngka(subtotalBarang)}
+                <td
+                  className="border-y border-r border-[#000000] py-2 bg-[#FFFFFF]"
+                  style={{ borderLeft: "none" }}
+                ></td>
+                <td className="border border-[#000000] text-right pr-2 py-2 font-bold align-middle bg-[#FDE047]">
+                  {formatAngka(data.total)}
                 </td>
               </tr>
-            )}
-
-            {/* 2. LOOPING UANG MUKA (DP) */}
-            {dpItems.length > 0 && (
-              <>
-                <tr className="font-bold border-y border-[#000000] bg-[#F9FAFB]">
-                  <td className="border-x border-[#000000] text-center italic py-2.5 align-middle">
-                    #
-                  </td>
-                  <td
-                    colSpan="4"
-                    className="border-x border-[#000000] text-left px-2 py-2.5 align-middle"
-                  >
-                    Uang Muka / DP :
-                  </td>
-                </tr>
-                {dpItems.map((item, i) => (
-                  <tr key={i}>
-                    <td
-                      colSpan="2"
-                      className="border border-[#000000] text-left px-2 align-middle py-2.5"
-                    >
-                      {item.description}
-                    </td>
-                    <td className="border border-[#000000] px-2 align-middle py-2.5">
-                      <span className="float-left">{item.qty}</span>
-                      <span className="float-right">{item.unit}</span>
-                      <div className="clear-both"></div>
-                    </td>
-                    <td className="border border-[#000000] text-right pr-2 align-middle py-2.5">
-                      {formatAngka(item.unit_price)}
-                    </td>
-                    <td className="border border-[#000000] text-right pr-2 align-middle py-2.5">
-                      {formatAngka(item.subtotal)}
-                    </td>
-                  </tr>
-                ))}
-              </>
-            )}
-
-            {/* 3. LOOPING PELUNASAN */}
-            {pelunasanItems.length > 0 && (
-              <>
-                <tr className="font-bold border-y border-[#000000] bg-[#FDE047]">
-                  <td className="border-x border-[#000000] text-center italic py-2.5 align-middle">
-                    #
-                  </td>
-                  <td
-                    colSpan="4"
-                    className="border-x border-[#000000] text-left px-2 py-2.5 align-middle"
-                  >
-                    Pelunasan :
-                  </td>
-                </tr>
-                {pelunasanItems.map((item, i) => (
-                  <tr key={i}>
-                    <td
-                      colSpan="2"
-                      className="border border-[#000000] text-left px-2 align-middle py-2.5"
-                    >
-                      {item.description}
-                    </td>
-                    <td className="border border-[#000000] px-2 align-middle py-2.5">
-                      <span className="float-left">{item.qty}</span>
-                      <span className="float-right">{item.unit}</span>
-                      <div className="clear-both"></div>
-                    </td>
-                    <td className="border border-[#000000] text-right pr-2 align-middle py-2.5">
-                      {formatAngka(item.unit_price)}
-                    </td>
-                    <td className="border border-[#000000] text-right pr-2 align-middle py-2.5">
-                      {formatAngka(item.subtotal)}
-                    </td>
-                  </tr>
-                ))}
-              </>
             )}
           </tbody>
 
-          {/* GRAND TOTAL DARI DATABASE (DIPISAH KOLOMNYA AGAR TATA LETAK SEMPURNA) */}
           <tfoot className="bg-[#9ccaff] font-bold">
             <tr>
               <td
                 colSpan="3"
-                className="border border-[#000000] py-2.5 text-center align-middle"
+                className="border-y border-l border-[#000000] py-2 text-center align-middle"
+                style={{ borderRight: "none" }}
               >
                 Grand Total
               </td>
-              <td className="border border-[#000000] py-2.5 text-right pr-2 align-middle">
+              <td
+                className="border-y border-r border-[#000000] py-2 text-right pr-2 align-middle"
+                style={{ borderLeft: "none" }}
+              >
                 Rp :
               </td>
-              <td className="border border-[#000000] text-right pr-2 py-2.5 bg-[#FDE047] align-middle text-[11pt]">
+              <td className="border border-[#000000] text-right pr-2 py-2 align-middle bg-[#FDE047]">
                 {formatAngka(data.total)}
               </td>
             </tr>
           </tfoot>
         </table>
 
-        {/* FOOTER */}
         <div className="mb-10 text-[10pt]">
           <p className=" mb-1 leading-relaxed">
             Demikian Invoice ini saya sampaikan.
@@ -367,7 +342,6 @@ const PrintableInvoice = ({ data, onClose }) => {
           </p>
         </div>
 
-        {/* BOTTOM SECTION */}
         <div className="flex justify-between items-start no-split">
           <div className="w-[45%]">
             <div className="border border-[#000000] p-3 mb-4">
@@ -401,7 +375,6 @@ const PrintableInvoice = ({ data, onClose }) => {
               ))}
             </div>
           </div>
-
           <div className="w-[45%] flex flex-col items-center">
             <p className="text-[10pt] mb-2">
               Bekasi, {formatDate(data.invoice_date)}
@@ -420,24 +393,21 @@ const PrintableInvoice = ({ data, onClose }) => {
         </div>
       </div>
 
-      {/* PANEL TOMBOL DI KANAN KERTAS A4 */}
       <div className="w-48 shrink-0 flex flex-col gap-3 print:hidden sticky top-6">
         <button
-          onClick={handleDownloadPDF}
-          disabled={isDownloading}
+          onClick={handlePrint}
+          disabled={isPrinting}
           className="w-full whitespace-nowrap px-4 py-2.5 bg-[#1A3263] text-[#FFFFFF] rounded-lg font-bold hover:bg-[#122345] transition shadow-md disabled:opacity-75 flex items-center justify-center cursor-pointer"
         >
-          <Download size={18} className="inline mr-2 shrink-0" />
-          {isDownloading ? "Memproses..." : "Download PDF"}
+          <Printer size={18} className="inline mr-2 shrink-0" />{" "}
+          {isPrinting ? "Mempersiapkan..." : "Cetak / Simpan PDF"}
         </button>
-
         <button
           onClick={onClose}
-          disabled={isDownloading}
+          disabled={isPrinting}
           className="w-full whitespace-nowrap px-4 py-2.5 bg-[#FEF2F2] text-[#DC2626] rounded-lg font-bold hover:bg-[#FEE2E2] transition disabled:opacity-50 flex items-center justify-center cursor-pointer"
         >
-          <X size={18} className="inline mr-2 shrink-0" />
-          Tutup
+          <X size={18} className="inline mr-2 shrink-0" /> Tutup
         </button>
       </div>
     </div>
