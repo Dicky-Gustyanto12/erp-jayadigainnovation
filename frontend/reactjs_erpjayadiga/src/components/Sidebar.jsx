@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Building2,
   Users,
+  ShoppingCart,
 } from "lucide-react";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -78,6 +79,12 @@ const Sidebar = () => {
       path: "/invoice",
       label: "Invoice", // Berdasarkan tabel 'invoices'
       icon: <FileText size={20} />,
+    },
+    {
+      id: "purchase-order",
+      path: "/purchase-order",
+      label: "Purchase Order",
+      icon: <ShoppingCart size={20} />,
     },
     {
       id: "absensi",

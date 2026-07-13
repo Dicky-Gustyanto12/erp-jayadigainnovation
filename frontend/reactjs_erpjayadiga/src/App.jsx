@@ -9,6 +9,7 @@ import Sidebar from "./components/Sidebar";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import InvoicePage from "./pages/InvoicePage";
+import PurchaseOrderPage from "./pages/PurchaseOrderPage";
 import AbsensiPage from "./pages/AbsensiPage";
 import ProjectPage from "./pages/ProjectPage";
 import KeuanganPage from "./pages/KeuanganPage";
@@ -60,6 +61,7 @@ function App() {
                     <Routes>
                       <Route path="/dashboard" element={<DashboardPage />} />
                       <Route path="/invoice" element={<InvoicePage />} />
+                      <Route path="/purchase-order" element={<PurchaseOrderPage />} />
                       <Route path="/absensi" element={<AbsensiPage />} />
                       <Route path="/project" element={<ProjectPage />} />
                       <Route path="/keuangan" element={<KeuanganPage />} />

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\IncomeController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\PurchaseOrderController;
 
 Route::post('/register', [AuthController::class,'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -26,4 +27,5 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::apiResource('invoices', InvoiceController::class);
     Route::apiResource('projects', ProjectController::class);
     Route::apiResource('tasks', TaskController::class);
+    Route::apiResource('purchase-orders', PurchaseOrderController::class);
 });

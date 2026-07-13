@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   Eye,
@@ -22,12 +22,27 @@ const InvoicePage = () => {
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [poSearch, setPoSearch] = useState("");
+  const [isPoDropdownOpen, setIsPoDropdownOpen] = useState(false);
+  const poDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (poDropdownRef.current && !poDropdownRef.current.contains(event.target)) {
+        setIsPoDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
 
   const defaultItem = {
     item_type: "barang",
@@ -42,6 +57,7 @@ const InvoicePage = () => {
   const [formData, setFormData] = useState({
     client_id: "",
     project_id: "",
+    purchase_order_id: "",
     total: 0,
     invoice_date: "",
     due_date: "",
@@ -54,14 +70,16 @@ const InvoicePage = () => {
     try {
       const token = localStorage.getItem("token");
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const [resInvoices, resClients, resProjects] = await Promise.all([
+      const [resInvoices, resClients, resProjects, resPurchaseOrders] = await Promise.all([
         axios.get("http://127.0.0.1:8000/api/invoices", config),
         axios.get("http://127.0.0.1:8000/api/clients", config),
         axios.get("http://127.0.0.1:8000/api/projects", config),
+        axios.get("http://127.0.0.1:8000/api/purchase-orders", config),
       ]);
       setInvoices(resInvoices.data.data);
       setClients(resClients.data.data);
       setProjects(resProjects.data.data);
+      setPurchaseOrders(resPurchaseOrders.data.data);
     } catch (error) {
       console.error("Gagal mengambil data:", error);
     } finally {
@@ -91,24 +109,22 @@ const InvoicePage = () => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 0, maximumFractionDigits: 10
     }).format(number || 0);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(date);
+    return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(date);
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === "client_id")
-      setFormData({ ...formData, client_id: value, project_id: "" });
+    if (name === "client_id") {
+      setFormData({ ...formData, client_id: value, project_id: "", purchase_order_id: "" });
+      setPoSearch("");
+    }
     else setFormData({ ...formData, [name]: value });
   };
 
@@ -178,20 +194,33 @@ const InvoicePage = () => {
     setFormData({ ...formData, items: newItems });
   };
 
+
+  
   const handleItemChange = (index, field, value) => {
     const newItems = [...formData.items];
     newItems[index][field] = value;
 
     if (
-      (field === "qty" || field === "unit_price") &&
+      (field === "qty" || field === "unit_price" || field === "math_operator" || field === "math_operand") &&
       newItems[index].item_type !== "kategori" &&
       newItems[index].item_type !== "kosong"
     ) {
-      const q = newItems[index].qty === "" ? 0 : Number(newItems[index].qty);
-      const p =
-        newItems[index].unit_price === ""
-          ? 0
-          : Number(newItems[index].unit_price);
+      let rawQ = (newItems[index].qty || "").toString().replace(',', '.');
+      const q = rawQ === "" ? 0 : Number(rawQ);
+      
+      let rawP = (newItems[index].unit_price || "").toString().replace(',', '.');
+      let p = rawP === "" ? 0 : Number(rawP);
+      
+      const op = newItems[index].math_operator;
+      let rawOpVal = (newItems[index].math_operand || "").toString().replace(',', '.');
+      const opVal = rawOpVal === "" ? null : Number(rawOpVal);
+      
+      if (op && opVal !== null && !isNaN(opVal)) {
+          if (op === '/') p /= opVal;
+          else if (op === '*') p *= opVal;
+          else if (op === '-') p -= opVal;
+          else if (op === '+') p += opVal;
+      }
 
       if (newItems[index].qty === "" && newItems[index].unit_price === "") {
         newItems[index].subtotal = "";
@@ -206,6 +235,7 @@ const InvoicePage = () => {
     setFormData({
       client_id: "",
       project_id: "",
+      purchase_order_id: "",
       total: 0,
       invoice_date: "",
       due_date: "",
@@ -221,33 +251,37 @@ const InvoicePage = () => {
     const processedItems =
       inv.items && inv.items.length > 0
         ? inv.items.map((i) => {
-            const type = i.item_type || "barang";
+          const type = i.item_type || "barang";
 
-            // PERBAIKAN: Hanya mengambil nilai bulat-bulat dari Database, tidak lagi asal ceklis!
-            let checked = i.is_highlighted == 1 || i.is_highlighted === true;
+          // PERBAIKAN: Hanya mengambil nilai bulat-bulat dari Database, tidak lagi asal ceklis!
+          let checked = i.is_highlighted == 1 || i.is_highlighted === true;
 
-            return {
-              ...i,
-              item_type: type,
-              is_highlighted: checked,
-              qty: i.qty == 0 || i.qty == null ? "" : i.qty,
-              unit: i.unit == "-" || i.unit == null ? "" : i.unit,
-              unit_price:
-                i.unit_price == 0 || i.unit_price == null ? "" : i.unit_price,
-              subtotal: i.subtotal == 0 || i.subtotal == null ? "" : i.subtotal,
-            };
-          })
+          return {
+            ...i,
+            item_type: type,
+            is_highlighted: checked,
+            qty: i.qty == 0 || i.qty == null ? "" : parseFloat(i.qty),
+            unit: i.unit == "-" || i.unit == null ? "" : i.unit,
+            unit_price: i.unit_price == 0 || i.unit_price == null ? "" : parseFloat(i.unit_price),
+            math_operator: i.math_operator || "",
+            math_operand: i.math_operand == null ? "" : parseFloat(i.math_operand),
+            subtotal: i.subtotal == 0 || i.subtotal == null ? "" : parseFloat(i.subtotal),
+          };
+        })
         : [{ ...defaultItem, is_highlighted: true }];
 
     setFormData({
       client_id: inv.client_id || "",
       project_id: inv.project_id || "",
+      purchase_order_id: inv.purchase_order_id || "",
       total: inv.total || 0,
       invoice_date: inv.invoice_date || "",
       due_date: inv.due_date || "",
       status: inv.status || "Pending",
       items: processedItems,
     });
+    const relatedPo = inv.purchase_order || inv.purchaseOrder;
+    setPoSearch(relatedPo ? `${relatedPo.po_code} - ${formatDate(relatedPo.po_date)} - ${relatedPo.total ? formatRupiah(relatedPo.total) : ""}` : "");
     setIsEditMode(true);
     setEditId(inv.id);
     setIsModalOpen(true);
@@ -266,12 +300,14 @@ const InvoicePage = () => {
     const cleanItems = formData.items.map((item) => ({
       ...item,
       description: item.item_type === "kosong" ? "-" : item.description || "-",
-      qty: item.qty === "" || item.qty === null ? null : Number(item.qty),
+      qty: item.qty === "" || item.qty === null ? null : Number(item.qty.toString().replace(',', '.')),
       unit: item.unit === "" || item.unit === null ? null : item.unit,
       unit_price:
         item.unit_price === "" || item.unit_price === null
           ? null
-          : Number(item.unit_price),
+          : Number(item.unit_price.toString().replace(',', '.')),
+      math_operator: item.math_operator || null,
+      math_operand: item.math_operand === "" || item.math_operand == null ? null : Number(item.math_operand.toString().replace(',', '.')),
       subtotal:
         item.subtotal === "" || item.subtotal === null
           ? null
@@ -388,7 +424,6 @@ const InvoicePage = () => {
               <tr>
                 <th className="py-4 px-6">ID Invoice</th>
                 <th className="py-4 px-6">Klien</th>
-                <th className="py-4 px-6">Proyek</th>
                 <th className="py-4 px-6">Jatuh Tempo</th>
                 <th className="py-4 px-6 text-right">Grand Total Tagihan</th>
                 <th className="py-4 px-6 text-center">Status</th>
@@ -424,9 +459,6 @@ const InvoicePage = () => {
                       {inv.client?.company || (
                         <span className="text-red-400 italic">Tanpa Klien</span>
                       )}
-                    </td>
-                    <td className="py-4 px-6 text-gray-600">
-                      {inv.project?.project_name || "-"}
                     </td>
                     <td className="py-4 px-6 text-gray-600 font-medium">
                       {formatDate(inv.due_date)}
@@ -533,29 +565,67 @@ const InvoicePage = () => {
                     ))}
                   </select>
                 </div>
-                <div>
+
+                <div ref={poDropdownRef} className="relative">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Pilih Proyek (Opsional)
+                    Berdasarkan Purchase Order (PO)
                   </label>
-                  <select
-                    name="project_id"
-                    value={formData.project_id}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1A3263] outline-none"
+                  <input
+                    type="text"
+                    value={poSearch}
+                    onChange={(e) => {
+                      setPoSearch(e.target.value);
+                      setIsPoDropdownOpen(true);
+                      setFormData(prev => ({ ...prev, purchase_order_id: "" }));
+                    }}
+                    onClick={() => setIsPoDropdownOpen(true)}
+                    placeholder={!formData.client_id ? "-- Pilih Client dahulu --" : "-- Pilih PO --"}
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1A3263] outline-none ${!formData.client_id ? "placeholder-gray-400 text-gray-400 bg-gray-50" : "placeholder-gray-900 text-gray-900 bg-white"}`}
                     disabled={isSubmitting || !formData.client_id}
+                  />
+                  <div 
+                    className={`absolute right-3 top-[34px] cursor-pointer ${!formData.client_id ? "text-gray-400" : "text-gray-900"}`} 
+                    onClick={() => {
+                        if (formData.client_id && !isSubmitting) {
+                            setIsPoDropdownOpen(!isPoDropdownOpen);
+                        }
+                    }}
                   >
-                    <option value="">-- Pilih Proyek --</option>
-                    {projects
-                      .filter(
-                        (p) =>
-                          String(p.client_id) === String(formData.client_id),
-                      )
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.project_name}
-                        </option>
-                      ))}
-                  </select>
+                    <ChevronDown size={18} className={!formData.client_id ? "text-gray-400" : "text-gray-900"} />
+                  </div>
+                  {isPoDropdownOpen && formData.client_id && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      <div
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-gray-500 italic text-sm"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, purchase_order_id: "" }));
+                          setPoSearch("");
+                          setIsPoDropdownOpen(false);
+                        }}
+                      >
+                        -- Kosongkan PO --
+                      </div>
+                      {purchaseOrders
+                        .filter(po => String(po.client_id) === String(formData.client_id))
+                        .filter(po =>
+                          poSearch === "" ||
+                          (po.po_code + " - " + formatDate(po.po_date) + " - " + (po.total ? formatRupiah(po.total) : "")).toLowerCase().includes(poSearch.toLowerCase())
+                        )
+                        .map(po => (
+                          <div
+                            key={po.id}
+                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, purchase_order_id: po.id }));
+                              setPoSearch(`${po.po_code} - ${formatDate(po.po_date)} - ${po.total ? formatRupiah(po.total) : ""}`);
+                              setIsPoDropdownOpen(false);
+                            }}
+                          >
+                            {po.po_code} - {formatDate(po.po_date)} - {po.total ? formatRupiah(po.total) : ""}
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -627,9 +697,10 @@ const InvoicePage = () => {
                         <th className="py-3 px-4 w-24">Qty</th>
                         <th className="py-3 px-4 w-24">Satuan</th>
                         <th className="py-3 px-4 w-32">Harga Satuan</th>
+                          <th className="py-3 px-4 w-[140px]">Perhitungan</th>
                         <th className="py-3 px-4 w-32 text-right">Subtotal</th>
                         <th className="py-3 px-4 w-24 text-center bg-yellow-100 text-yellow-800">
-                          Kuning
+                          Tandai
                         </th>
                         <th className="py-3 px-4 w-28 text-center">
                           Urutan / Hapus
@@ -681,24 +752,17 @@ const InvoicePage = () => {
                                       ? "Kategori (Misal: Area Outbound)"
                                       : "Contoh: Flying Fox"
                                   }
-                                  className={`w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none ${isCategory ? "font-bold bg-white" : ""}`}
+                                  className={`w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none bg-white ${isCategory ? "font-bold" : ""}`}
                                 />
                               )}
                             </td>
                             <td className="p-2">
                               {!isCategory && !isSpacing ? (
-                                <input
-                                  type="number"
-                                  min="0"
+                                <input type="text"
+                                  
                                   value={item.qty}
-                                  onChange={(e) =>
-                                    handleItemChange(
-                                      index,
-                                      "qty",
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none text-center"
+                                  onChange={(e) => handleItemChange(index, "qty", e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none text-center bg-white"
                                 />
                               ) : (
                                 <div className="text-center text-gray-300">
@@ -719,7 +783,7 @@ const InvoicePage = () => {
                                     )
                                   }
                                   placeholder="ls/unit"
-                                  className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none text-center"
+                                  className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none text-center bg-white"
                                 />
                               ) : (
                                 <div className="text-center text-gray-300">
@@ -729,8 +793,7 @@ const InvoicePage = () => {
                             </td>
                             <td className="p-2">
                               {!isCategory && !isSpacing ? (
-                                <input
-                                  type="number"
+                                <input type="text"
                                   value={item.unit_price}
                                   onChange={(e) =>
                                     handleItemChange(
@@ -739,12 +802,37 @@ const InvoicePage = () => {
                                       e.target.value,
                                     )
                                   }
-                                  className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none"
+                                  className="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none bg-white"
                                 />
                               ) : (
                                 <div className="text-center text-gray-300">
                                   -
                                 </div>
+                              )}
+                            </td>
+                            <td className="p-2">
+                              {!isCategory && !isSpacing ? (
+                                <div className="flex gap-1 items-center justify-center">
+                                  <select
+                                    value={item.math_operator || ""}
+                                    onChange={(e) => handleItemChange(index, "math_operator", e.target.value)}
+                                    className="w-10 p-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none bg-white"
+                                  >
+                                    <option value=""></option>
+                                    <option value="/">/</option>
+                                    <option value="*">x</option>
+                                    <option value="-">-</option>
+                                    <option value="+">+</option>
+                                  </select>
+                                  <input type="text"
+                                    
+                                    value={item.math_operand || ""}
+                                    onChange={(e) => handleItemChange(index, "math_operand", e.target.value)}
+                                    className="w-16 p-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-[#1A3263] outline-none text-center bg-white"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="text-center text-gray-300">-</div>
                               )}
                             </td>
                             <td
@@ -768,7 +856,7 @@ const InvoicePage = () => {
                                   )
                                 }
                                 className="w-5 h-5 text-yellow-500 rounded border-gray-300 cursor-pointer disabled:opacity-30"
-                                title="Centang untuk memberi warna kuning di Invoice PDF"
+                                title="Centang untuk memberi tanda di Invoice PDF"
                                 disabled={isSpacing}
                               />
                             </td>
@@ -811,7 +899,7 @@ const InvoicePage = () => {
                     <tfoot className="bg-yellow-50 border-t-2 border-yellow-300">
                       <tr>
                         <td
-                          colSpan="5"
+                          colSpan="7"
                           className="py-3 px-4 text-right font-bold text-gray-700"
                         >
                           GRAND TOTAL TAGIHAN SAAT INI:
@@ -820,10 +908,10 @@ const InvoicePage = () => {
                           {formatRupiah(formData.total)}
                         </td>
                         <td
-                          colSpan="2"
+                          colSpan="7"
                           className="text-xs text-yellow-700 px-2 italic"
                         >
-                          *Hanya menghitung yang kuning
+                          *Hanya menghitung yang ditandai
                         </td>
                       </tr>
                     </tfoot>

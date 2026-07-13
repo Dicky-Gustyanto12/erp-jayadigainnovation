@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Printer, X } from "lucide-react";
 
-const PrintableInvoice = ({ data, onClose }) => {
+const PurchaseOrder = ({ data, onClose }) => {
   const [isPrinting, setIsPrinting] = useState(false);
 
   if (!data) return null;
@@ -55,11 +55,11 @@ const PrintableInvoice = ({ data, onClose }) => {
               visibility: hidden;
             }
 
-            #invoice-content, #invoice-content * {
+            #po-content, #po-content * {
               visibility: visible;
             }
 
-            #invoice-content {
+            #po-content {
               position: absolute;
               left: 0;
               top: 0;
@@ -81,7 +81,7 @@ const PrintableInvoice = ({ data, onClose }) => {
       <div className="w-48 shrink-0 hidden lg:block print:hidden"></div>
 
       <div
-        id="invoice-content"
+        id="po-content"
         className="w-[210mm] bg-[#FFFFFF] text-[#000000] font-roboto text-[11pt] shadow-lg overflow-hidden box-border px-[20mm] py-[20mm] shrink-0 print:shadow-none"
         style={{ minHeight: "296mm" }}
       >
@@ -109,29 +109,20 @@ const PrintableInvoice = ({ data, onClose }) => {
                   <td className="w-20 py-0.5 font-medium align-top">Nomor</td>
                   <td className="w-3 py-0.5 align-top">:</td>
                   <td className="py-0.5 align-top">
-                    {data.invoice_code || `INV-${data.id}`}
+                    {data.po_code || `PO-${data.id}`}
                   </td>
                 </tr>
-                {(data.purchase_order || data.purchaseOrder) && (
-                  <tr>
-                    <td className="py-0.5 font-medium align-top">No. PO</td>
-                    <td className="w-3 py-0.5 align-top">:</td>
-                    <td className="py-0.5 align-top">
-                      {(data.purchase_order || data.purchaseOrder).po_code}
-                    </td>
-                  </tr>
-                )}
                 <tr>
                   <td className="py-0.5 font-medium align-top">Tanggal</td>
                   <td className="w-3 py-0.5 align-top">:</td>
                   <td className="py-0.5 align-top">
-                    {formatDate(data.invoice_date)}
+                    {formatDate(data.po_date)}
                   </td>
                 </tr>
                 <tr>
                   <td className="py-0.5 font-medium align-top">Perihal</td>
                   <td className="w-3 py-0.5 align-top">:</td>
-                  <td className="py-0.5 align-top">Invoice</td>
+                  <td className="py-0.5 align-top">Purchase Order</td>
                 </tr>
                 <tr>
                   <td className="py-0.5 font-medium align-top">Lampiran</td>
@@ -178,7 +169,7 @@ const PrintableInvoice = ({ data, onClose }) => {
         <div className="mb-4 text-[10pt]">
           <p className=" mb-1 leading-relaxed">Dengan Hormat,</p>
           <p className="leading-relaxed">
-            Berikut saya lampirkan Invoice untuk pekerjaan tersebut dengan
+            Berikut saya lampirkan Purchase Order untuk pekerjaan tersebut dengan
             rincian sebagai berikut:
           </p>
         </div>
@@ -340,7 +331,7 @@ const PrintableInvoice = ({ data, onClose }) => {
 
         <div className="mb-10 text-[10pt]">
           <p className=" mb-1 leading-relaxed">
-            Demikian Invoice ini saya sampaikan.
+            Demikian Purchase Order ini saya sampaikan.
           </p>
           <p className="leading-relaxed">
             Atas perhatian dan kerja samanya saya ucapkan terima kasih.
@@ -382,7 +373,7 @@ const PrintableInvoice = ({ data, onClose }) => {
           </div>
           <div className="w-[45%] flex flex-col items-center">
             <p className="text-[10pt] mb-2">
-              Bekasi, {formatDate(data.invoice_date)}
+              Bekasi, {formatDate(data.po_date)}
             </p>
             <div className="h-24 w-36 mb-1">
               <img
@@ -419,4 +410,4 @@ const PrintableInvoice = ({ data, onClose }) => {
   );
 };
 
-export default PrintableInvoice;
+export default PurchaseOrder;

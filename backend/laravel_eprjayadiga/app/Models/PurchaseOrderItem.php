@@ -5,13 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class InvoiceItem extends Model
+class PurchaseOrderItem extends Model
 {
     use HasFactory;
 
-    // PASTIKAN item_type dan is_highlighted ADA DI SINI
     protected $fillable = [
-        'invoice_id', 
+        'purchase_order_id', 
         'item_type', 
         'description', 
         'qty', 
@@ -23,8 +22,8 @@ class InvoiceItem extends Model
         'is_highlighted'
     ];
 
-    public function invoice()
+    public function purchaseOrder()
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(PurchaseOrder::class);
     }
 }

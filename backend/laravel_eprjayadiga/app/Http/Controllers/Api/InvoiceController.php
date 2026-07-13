@@ -14,7 +14,7 @@ class InvoiceController extends Controller
 {
     public function index()
     {
-        $invoices = Invoice::with(['client', 'project', 'items'])->latest()->get();
+        $invoices = Invoice::with(['client', 'project', 'purchaseOrder', 'items'])->latest()->get();
         return response()->json([
             'success' => true,
             'message' => 'Data Invoice berhasil diambil',
@@ -29,6 +29,7 @@ class InvoiceController extends Controller
             'status'              => 'required|string|in:Pending,Lunas,Dibatalkan',
             'client_id'           => 'required|integer|exists:clients,id',
             'project_id'          => 'nullable|integer|exists:projects,id',
+            'purchase_order_id'   => 'nullable|integer|exists:purchase_orders,id',
             'invoice_date'        => 'required|date',
             'due_date'            => 'required|date',
             'items'               => 'required|array',
@@ -50,8 +51,9 @@ class InvoiceController extends Controller
 
         try {
             $invoice = Invoice::create([
-                'client_id'    => $request->client_id,
-                'project_id'   => $request->project_id,
+                'client_id'         => $request->client_id,
+                'project_id'        => $request->project_id,
+                'purchase_order_id' => $request->purchase_order_id,
                 'invoice_date' => $request->invoice_date,
                 'due_date'     => $request->due_date,
                 'total'        => $request->total,
@@ -66,6 +68,8 @@ class InvoiceController extends Controller
                     'qty'            => $item['qty'] ?? 0,
                     'unit'           => $item['unit'] ?? '-',
                     'unit_price'     => $item['unit_price'] ?? 0,
+                    'math_operator'  => $item['math_operator'] ?? null,
+                    'math_operand'   => $item['math_operand'] ?? null,
                     'subtotal'       => $item['subtotal'] ?? 0,
                     'is_highlighted' => $item['is_highlighted'] ?? false,
                 ]);
@@ -89,7 +93,7 @@ class InvoiceController extends Controller
             }
 
             DB::commit();
-            $invoiceComplete = Invoice::with(['client', 'project', 'items'])->find($invoice->id);
+            $invoiceComplete = Invoice::with(['client', 'project', 'purchaseOrder', 'items'])->find($invoice->id);
 
             return response()->json([
                 'success' => true,
@@ -106,7 +110,7 @@ class InvoiceController extends Controller
 
     public function show(int $id)
     {
-        $invoice = Invoice::with(['client', 'project', 'items'])->where('id', $id)->first();
+        $invoice = Invoice::with(['client', 'project', 'purchaseOrder', 'items'])->where('id', $id)->first();
         if (!$invoice) return response()->json(['success' => false, 'message' => 'Tidak ditemukan', 'data' => null], 404);
         return response()->json(['success' => true, 'message' => 'Berhasil', 'data' => $invoice], 200);
     }
@@ -121,6 +125,7 @@ class InvoiceController extends Controller
             'status'              => 'required|string|in:Pending,Lunas,Dibatalkan',
             'client_id'           => 'required|integer|exists:clients,id',
             'project_id'          => 'nullable|integer|exists:projects,id',
+            'purchase_order_id'   => 'nullable|integer|exists:purchase_orders,id',
             'invoice_date'        => 'required|date',
             'due_date'            => 'required|date',
             'items'               => 'required|array',
@@ -142,8 +147,9 @@ class InvoiceController extends Controller
 
         try {
             $invoice->update([
-                'client_id'    => $request->client_id,
-                'project_id'   => $request->project_id,
+                'client_id'         => $request->client_id,
+                'project_id'        => $request->project_id,
+                'purchase_order_id' => $request->purchase_order_id,
                 'invoice_date' => $request->invoice_date,
                 'due_date'     => $request->due_date,
                 'total'        => $request->total,
@@ -161,6 +167,8 @@ class InvoiceController extends Controller
                     'qty'            => $item['qty'] ?? 0,
                     'unit'           => $item['unit'] ?? '-',
                     'unit_price'     => $item['unit_price'] ?? 0,
+                    'math_operator'  => $item['math_operator'] ?? null,
+                    'math_operand'   => $item['math_operand'] ?? null,
                     'subtotal'       => $item['subtotal'] ?? 0,
                     'is_highlighted' => $item['is_highlighted'] ?? false,
                 ]);
@@ -189,7 +197,7 @@ class InvoiceController extends Controller
             }
 
             DB::commit();
-            $updatedInvoice = Invoice::with(['client', 'project', 'items'])->find($id);
+            $updatedInvoice = Invoice::with(['client', 'project', 'purchaseOrder', 'items'])->find($id);
 
             return response()->json(['success' => true, 'message' => 'Berhasil diperbarui', 'data' => $updatedInvoice], 200);
 

@@ -15,6 +15,7 @@ class Invoice extends Model
         'status',
         'client_id',
         'project_id',
+        'purchase_order_id',
         'invoice_date',
         'due_date'
     ];
@@ -38,6 +39,10 @@ class Invoice extends Model
 
     public function project() {
         return $this->belongsTo(Project::class);
+    }
+
+    public function purchaseOrder() {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 
     public function client() {
