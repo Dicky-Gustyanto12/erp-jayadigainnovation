@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import PrintableInvoice from "../components/PrintableInvoice";
+import CalculatorComponent from "../components/Calculator";
 
 const InvoicePage = () => {
   const [invoices, setInvoices] = useState([]);
@@ -31,6 +32,7 @@ const InvoicePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [poSearch, setPoSearch] = useState("");
   const [isPoDropdownOpen, setIsPoDropdownOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const poDropdownRef = useRef(null);
 
   useEffect(() => {
@@ -524,6 +526,7 @@ const InvoicePage = () => {
         </div>
       )}
 
+      {isCalculatorOpen && <CalculatorComponent onClose={() => setIsCalculatorOpen(false)} />}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden my-auto max-h-[90vh] flex flex-col">
@@ -662,6 +665,13 @@ const InvoicePage = () => {
                   </h4>
                   <div className="flex gap-2">
                     {/* PERBAIKAN: Tombol Tambah Jarak Kosong */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
+                      className="flex items-center gap-1.5 text-sm bg-blue-100 text-blue-700 px-3 py-1.5 rounded font-bold hover:bg-blue-200 transition border border-blue-300 shadow-sm cursor-pointer"
+                    >
+                      <Calculator size={16} /> Kalkulator
+                    </button>
                     <button
                       type="button"
                       onClick={handleAddSpacing}

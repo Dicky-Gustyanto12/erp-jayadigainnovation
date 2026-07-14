@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import CalculatorComponent from "../components/Calculator";
+import { Calculator } from "lucide-react";
 import axios from "axios";
 import {
   Eye,
@@ -25,6 +27,7 @@ const PurchaseOrderPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -500,6 +503,7 @@ const PurchaseOrderPage = () => {
   )
   }
 
+  {isCalculatorOpen && <CalculatorComponent onClose={() => setIsCalculatorOpen(false)} />}
   {
     isModalOpen && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
@@ -579,12 +583,19 @@ const PurchaseOrderPage = () => {
                 <div className="flex gap-2">
                   {/* PERBAIKAN: Tombol Tambah Jarak Kosong */}
                   <button
-                    type="button"
-                    onClick={handleAddSpacing}
-                    className="flex items-center gap-1.5 text-sm bg-gray-50 text-gray-600 px-3 py-1.5 rounded font-bold hover:bg-gray-100 transition border border-gray-200 cursor-pointer"
-                  >
-                    <AlignJustify size={16} /> Tambah Jarak
-                  </button>
+                      type="button"
+                      onClick={() => setIsCalculatorOpen(!isCalculatorOpen)}
+                      className="flex items-center gap-1.5 text-sm bg-blue-100 text-blue-700 px-3 py-1.5 rounded font-bold hover:bg-blue-200 transition border border-blue-300 shadow-sm cursor-pointer"
+                    >
+                      <Calculator size={16} /> Kalkulator
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddSpacing}
+                      className="flex items-center gap-1.5 text-sm bg-gray-50 text-gray-600 px-3 py-1.5 rounded font-bold hover:bg-gray-100 transition border border-gray-200 cursor-pointer"
+                    >
+                      <AlignJustify size={16} /> Tambah Jarak
+                    </button>
                   <button
                     type="button"
                     onClick={handleAddCategory}
